@@ -1,1 +1,44 @@
+name: "Experience Hub Crawler"
 
+# 1. 실행 조건 트리거 (언제 실행할 것인가?)
+on:
+  # 1) 정해진 스케줄마다 자동 실행 (UTC 기준)
+  # 21:00 UTC = 한국 시간(KST) 오전 06:00
+  # 09:00 UTC = 한국 시간(KST) 오후 18:00
+  schedule:
+    - cron: "0 21,9 * * *"
+
+  # 2) GitHub 웹사이트에서 'Run workflow' 버튼을 눌러 언제든 즉시 수동 실행 가능
+  workflow_dispatch:
+
+jobs:
+  crawl-and-sync:
+    name: "체험단 공고 수집 및 Supabase DB 저장"
+    runs-on: ubuntu-latest
+
+    steps:
+      # 저장소 코드 체크아웃
+      - name: "Checkout repository"
+        uses: actions/checkout@v4
+
+      # 파이썬 환경 설정
+      - name: "Set up Python"
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+          cache: "pip"
+
+      # 필수 라이브러리 설치
+      - name: "Install Python Dependencies"
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt
+
+      # 크롤러 메인 스크립트 실행 (GitHub Secrets에서 보안 키 주입)
+      - name: "Run Crawler Script"
+        env:
+          SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
+          SUPABASE_KEY: ${{ secrets.SUPABASE_KEY }}
+          PYTHONIOENCODING: "utf-8"
+        run: |
+          python main.py
