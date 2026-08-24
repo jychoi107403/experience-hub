@@ -2,7 +2,7 @@
 // 파일명: web/app.js
 // 설명: 국내 체험단 통합 모음 사이트(Experience Hub)의 React 프론트엔드 핵심 로직
 // 주요 기능: 실시간 필터링/검색, D-Day 계산, 모집인원/신청자수/경쟁률 시각화,
-//            ★상세보기 미리보기 팝업 모달★ 및 1초 간편 신청 직결 시스템
+//            ★신청하기 클릭 시 해당 공고 공식 상세페이지로 즉시 새 창 직결★
 // ==============================================================================
 
 const { useState, useEffect, useMemo } = React;
@@ -11,7 +11,7 @@ const { useState, useEffect, useMemo } = React;
 const SUPABASE_URL = "";  // 예: "https://xxxx.supabase.co"
 const SUPABASE_ANON_KEY = ""; // 예: "eyJhbGciOi..."
 
-// 2. 기본 고품질 샘플 데이터 (Supabase 미연동 시 자동 로드)
+// 2. 기본 고품질 샘플 데이터 (공식 상세 신청 페이지 직결 URL)
 const MOCK_CAMPAIGNS = [
     {
         id: "mock-1",
@@ -210,29 +210,6 @@ function App() {
     const [showOnlyBookmarks, setShowOnlyBookmarks] = useState(false);
     const [isSupabaseConnected, setIsSupabaseConnected] = useState(false);
 
-    // ★ 상세보기 팝업 모달 상태 (선택된 공고 객체)
-    const [selectedCampaign, setSelectedCampaign] = useState(null);
-
-    // 모달 오픈 시 배경 스크롤 방지
-    useEffect(() => {
-        if (selectedCampaign) {
-            document.body.style.overflow = "hidden";
-        } else {
-            document.body.style.overflow = "unset";
-        }
-    }, [selectedCampaign]);
-
-    // ESC 키로 모달 닫기
-    useEffect(() => {
-        const handleKeyDown = (e) => {
-            if (e.key === "Escape") {
-                setSelectedCampaign(null);
-            }
-        };
-        window.addEventListener("keydown", handleKeyDown);
-        return () => window.removeEventListener("keydown", handleKeyDown);
-    }, []);
-
     useEffect(() => {
         async function fetchCampaigns() {
             setLoading(true);
@@ -262,10 +239,8 @@ function App() {
     }, []);
 
     const toggleBookmark = (id, e) => {
-        if (e) {
-            e.preventDefault();
-            e.stopPropagation();
-        }
+        e.preventDefault();
+        e.stopPropagation();
         setBookmarks(prev => {
             const next = prev.includes(id) ? prev.filter(bId => bId !== id) : [...prev, id];
             localStorage.setItem("experience_hub_bookmarks", JSON.stringify(next));
@@ -367,7 +342,7 @@ function App() {
                         국내 모든 체험단을 <span className="text-rose-400">한곳에서</span> 스마트하게!
                     </h1>
                     <p className="text-slate-300 text-sm sm:text-base max-w-2xl mx-auto">
-                        공고를 누르면 <strong>혜택과 조건을 미리 확인</strong>하고, 해당 플랫폼에서 <strong>1초 만에 간편 신청</strong>할 수 있습니다!
+                        디너의여왕, 클라우드리뷰 등 <strong>신청하기를 누르면 해당 공고 상세페이지로 바로 이동</strong>합니다!
                     </p>
 
                     <div className="relative max-w-2xl mx-auto pt-2">
@@ -375,7 +350,7 @@ function App() {
                             <i className="fa-solid fa-magnifying-glass absolute left-4 text-slate-400"></i>
                             <input
                                 type="text"
-                                placeholder="지역(강릉, 김해, 강남, 홍대) 또는 키워드(스시, 삼겹살, 숙박)를 검색해보세요"
+                                placeholder="지역(강릉, 김해, 강남, 홍대) 또는 키워드(스시, 삼겹살, 금수저)를 검색해보세요"
                                 value={searchTerm}
                                 onChange={(e) => setSearchTerm(e.target.value)}
                                 className="w-full pl-11 pr-10 py-3.5 rounded-2xl bg-white/95 text-slate-800 placeholder-slate-400 text-sm sm:text-base shadow-xl focus:outline-none focus:ring-4 focus:ring-indigo-400/50"
@@ -498,7 +473,7 @@ function App() {
                     )}
                 </div>
 
-                {/* 카드 그리드 리스트 (카드 클릭 시 상세 모달 오픈) */}
+                {/* 카드 그리드 리스트 (카드 또는 신청하기 클릭 시 공식 상세페이지로 직결 이동) */}
                 {loading ? (
                     <div className="py-24 text-center">
                         <i className="fa-solid fa-spinner fa-spin text-4xl text-indigo-600"></i>
@@ -521,10 +496,13 @@ function App() {
                             const compBadge = getCompetitionRateBadge(c.capacity, c.applied_count);
 
                             return (
-                                <div
+                                <a
                                     key={c.id}
-                                    onClick={() => setSelectedCampaign(c)}
-                                    className="campaign-card bg-white rounded-2xl border border-slate-200 overflow-hidden flex flex-col justify-between group cursor-pointer"
+                                    href={c.original_url}
+                                    target="_blank"
+                                    rel="noopener noreferrer"
+                                    className="campaign-card bg-white rounded-2xl border border-slate-200 overflow-hidden flex flex-col justify-between group cursor-pointer block text-inherit no-underline"
+                                    title={`${c.title} - ${c.platform} 상세페이지로 이동`}
                                 >
                                     {/* 썸네일 영역 */}
                                     <div className="relative card-image-wrap aspect-[4/3] bg-slate-100 overflow-hidden">
@@ -568,6 +546,7 @@ function App() {
                                     {/* 카드 본문 */}
                                     <div className="p-4 flex-1 flex flex-col justify-between space-y-3">
                                         <div className="space-y-1.5">
+                                            {/* 플랫폼 & 지역 */}
                                             <div className="flex items-center justify-between text-xs">
                                                 <span className={`px-2 py-0.5 rounded border text-[11px] font-bold ${platformBadge.bg}`}>
                                                     <i className={`fa-solid ${platformBadge.icon} mr-1`}></i>
@@ -579,10 +558,12 @@ function App() {
                                                 </span>
                                             </div>
 
+                                            {/* 캠페인 상호명/제목 */}
                                             <h2 className="font-bold text-slate-900 text-sm sm:text-base line-clamp-2 group-hover:text-indigo-600 transition-colors leading-snug">
                                                 {c.title}
                                             </h2>
 
+                                            {/* 제공 혜택 */}
                                             {c.reward && (
                                                 <p className="text-xs text-indigo-700 bg-indigo-50/70 rounded-lg p-2 font-medium line-clamp-2 border border-indigo-100/50">
                                                     <i className="fa-solid fa-gift mr-1 text-indigo-500"></i>
@@ -591,6 +572,7 @@ function App() {
                                             )}
                                         </div>
 
+                                        {/* 실시간 경쟁률 및 모집/신청 현황 */}
                                         <div className="space-y-2 pt-2 border-t border-slate-100">
                                             <div className="flex items-center justify-between">
                                                 <span className={`px-2 py-0.5 rounded-md border text-[11px] ${compBadge.badgeClass}`}>
@@ -603,157 +585,24 @@ function App() {
                                                 <span>모집 <strong className="text-indigo-600 font-bold">{c.capacity || 5}</strong>명</span>
                                             </div>
 
-                                            {/* 상세보기 & 간편 신청 버튼 */}
+                                            {/* ★ 신청하기 버튼: 누르면 바로 해당 공고 상세페이지로 이동 ★ */}
                                             <div className="w-full py-2.5 rounded-xl bg-slate-900 group-hover:bg-indigo-600 text-white font-semibold text-xs text-center flex items-center justify-center space-x-1.5 transition-colors shadow-sm">
-                                                <span>상세보기 & 간편 신청</span>
+                                                <span>신청하러 가기</span>
                                                 <i className="fa-solid fa-arrow-up-right-from-square text-[10px]"></i>
                                             </div>
                                         </div>
                                     </div>
-                                </div>
+                                </a>
                             );
                         })}
                     </div>
                 )}
             </main>
 
-            {/* ★ 3. 상세보기 및 간편 신청 팝업 모달창 (Modal Popup) ★ */}
-            {selectedCampaign && (
-                <div
-                    className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-sm animate-fadeIn"
-                    onClick={() => setSelectedCampaign(null)}
-                >
-                    <div
-                        className="bg-white rounded-3xl max-w-lg w-full overflow-hidden shadow-2xl border border-slate-100 flex flex-col max-h-[90vh] animate-scaleUp"
-                        onClick={(e) => e.stopPropagation()}
-                    >
-                        {/* 모달 상단 썸네일 & 닫기 버튼 */}
-                        <div className="relative aspect-[16/9] bg-slate-100 overflow-hidden">
-                            <img
-                                src={selectedCampaign.image_url || "https://images.unsplash.com/photo-1499750310107-5fef28a66643?w=600&auto=format&fit=crop&q=80"}
-                                alt={selectedCampaign.title}
-                                className="w-full h-full object-cover"
-                            />
-                            <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent"></div>
-
-                            {/* 닫기 (X) 버튼 */}
-                            <button
-                                onClick={() => setSelectedCampaign(null)}
-                                className="absolute top-4 right-4 w-9 h-9 rounded-full bg-black/40 hover:bg-black/70 text-white flex items-center justify-center backdrop-blur-md transition-colors"
-                            >
-                                <i className="fa-solid fa-xmark text-base"></i>
-                            </button>
-
-                            {/* 플랫폼 & D-Day 뱃지 */}
-                            <div className="absolute bottom-4 left-4 flex items-center space-x-2">
-                                <span className={`px-3 py-1 rounded-full text-xs font-extrabold ${getPlatformBadge(selectedCampaign.platform).bg} bg-white shadow-md`}>
-                                    <i className={`fa-solid ${getPlatformBadge(selectedCampaign.platform).icon} mr-1`}></i>
-                                    {selectedCampaign.platform}
-                                </span>
-                                <span className="px-3 py-1 rounded-full text-xs font-extrabold bg-rose-500 text-white shadow-md">
-                                    {getDDay(selectedCampaign.end_date).text}
-                                </span>
-                                <span className={`px-2.5 py-1 rounded-full text-xs font-bold ${getMediaBadge(selectedCampaign.media_type)} shadow-md`}>
-                                    {selectedCampaign.media_type}
-                                </span>
-                            </div>
-                        </div>
-
-                        {/* 모달 본문 내용 */}
-                        <div className="p-6 overflow-y-auto space-y-5 flex-1">
-                            {/* 제목 및 지역 */}
-                            <div>
-                                <div className="flex items-center space-x-1.5 text-xs text-slate-500 font-medium mb-1">
-                                    <i className="fa-solid fa-location-dot text-indigo-500"></i>
-                                    <span>{selectedCampaign.location || "전국"}</span>
-                                    <span>·</span>
-                                    <span>{selectedCampaign.category}</span>
-                                </div>
-                                <h2 className="text-lg sm:text-xl font-bold text-slate-900 leading-snug">
-                                    {selectedCampaign.title}
-                                </h2>
-                            </div>
-
-                            {/* 제공 혜택 하이라이트 박스 */}
-                            <div className="bg-indigo-50/80 rounded-2xl p-4 border border-indigo-100 space-y-1.5">
-                                <div className="flex items-center space-x-2 text-indigo-900 font-bold text-sm">
-                                    <i className="fa-solid fa-gift text-indigo-600"></i>
-                                    <span>제공 혜택 및 제품</span>
-                                </div>
-                                <p className="text-xs sm:text-sm text-indigo-800 font-medium leading-relaxed">
-                                    {selectedCampaign.reward || "체험단 무료 이용권 / 협찬 제품 제공"}
-                                </p>
-                            </div>
-
-                            {/* 모집 및 실시간 신청 현황 / 경쟁률 */}
-                            <div className="bg-slate-50 rounded-2xl p-4 border border-slate-200/80 space-y-3">
-                                <div className="flex items-center justify-between text-xs sm:text-sm">
-                                    <span className="text-slate-500 font-medium">실시간 신청 현황</span>
-                                    <span className={`px-2 py-0.5 rounded-md border text-xs ${getCompetitionRateBadge(selectedCampaign.capacity, selectedCampaign.applied_count).badgeClass}`}>
-                                        {getCompetitionRateBadge(selectedCampaign.capacity, selectedCampaign.applied_count).tag} ({getCompetitionRateBadge(selectedCampaign.capacity, selectedCampaign.applied_count).text})
-                                    </span>
-                                </div>
-
-                                <div className="grid grid-cols-2 gap-3 pt-1 text-center">
-                                    <div className="bg-white rounded-xl p-3 border border-slate-100 shadow-sm">
-                                        <p className="text-xs text-slate-400 font-medium">모집 인원</p>
-                                        <p className="text-base sm:text-lg font-extrabold text-indigo-600 mt-0.5">
-                                            {selectedCampaign.capacity || 5} <span className="text-xs font-normal text-slate-500">명</span>
-                                        </p>
-                                    </div>
-                                    <div className="bg-white rounded-xl p-3 border border-slate-100 shadow-sm">
-                                        <p className="text-xs text-slate-400 font-medium">현재 신청자 수</p>
-                                        <p className="text-base sm:text-lg font-extrabold text-slate-900 mt-0.5">
-                                            {selectedCampaign.applied_count || 0} <span className="text-xs font-normal text-slate-500">명</span>
-                                        </p>
-                                    </div>
-                                </div>
-                            </div>
-
-                            {/* 💡 초보자용 1초 간편 신청 안내 박스 */}
-                            <div className="flex items-start space-x-3 bg-amber-50/80 rounded-2xl p-4 border border-amber-200/70 text-amber-900 text-xs leading-relaxed">
-                                <i className="fa-solid fa-circle-info text-amber-600 mt-0.5 text-sm"></i>
-                                <div>
-                                    <strong className="font-bold text-amber-950">간편 신청 안내</strong>
-                                    <p className="mt-0.5 text-amber-800">
-                                        아래 신청 버튼을 누르시면 <strong>{selectedCampaign.platform} 공식 신청 페이지</strong>로 이동하며, 네이버/카카오 간편 로그인으로 1초 만에 신청하실 수 있습니다.
-                                    </p>
-                                </div>
-                            </div>
-                        </div>
-
-                        {/* 모달 하단 버튼 액션 바 */}
-                        <div className="p-4 sm:p-5 bg-slate-50 border-t border-slate-100 flex items-center space-x-3">
-                            <button
-                                onClick={(e) => toggleBookmark(selectedCampaign.id, e)}
-                                className={`px-4 py-3.5 rounded-2xl border flex items-center justify-center space-x-1.5 text-sm font-semibold transition-all ${
-                                    bookmarks.includes(selectedCampaign.id)
-                                        ? "bg-rose-50 text-rose-600 border-rose-200"
-                                        : "bg-white text-slate-700 border-slate-200 hover:bg-slate-100"
-                                }`}
-                            >
-                                <i className={`fa-heart ${bookmarks.includes(selectedCampaign.id) ? "fa-solid text-rose-500" : "fa-regular text-slate-400"}`}></i>
-                                <span className="hidden sm:inline">찜하기</span>
-                            </button>
-
-                            <a
-                                href={selectedCampaign.original_url}
-                                target="_blank"
-                                rel="noopener noreferrer"
-                                className="flex-1 py-3.5 rounded-2xl bg-gradient-to-r from-indigo-600 to-rose-500 hover:from-indigo-700 hover:to-rose-600 text-white font-bold text-sm text-center flex items-center justify-center space-x-2 shadow-lg shadow-indigo-200 transition-all hover:scale-[1.01]"
-                            >
-                                <span>{selectedCampaign.platform}에서 1초 만에 신청하기</span>
-                                <i className="fa-solid fa-arrow-up-right-from-square text-xs"></i>
-                            </a>
-                        </div>
-                    </div>
-                </div>
-            )}
-
             <footer className="bg-slate-900 text-slate-400 text-xs py-8 border-t border-slate-800 mt-12">
                 <div className="max-w-7xl mx-auto px-4 text-center space-y-2">
                     <p className="font-semibold text-slate-300">Experience Hub · 국내 체험단 통합 검색 플랫폼</p>
-                    <p>공고를 클릭하시면 상세 정보 확인 후 해당 업체의 공식 신청 페이지로 새 창 이동합니다.</p>
+                    <p>공고를 클릭하시면 해당 업체의 공식 상세페이지로 새 창 이동합니다.</p>
                 </div>
             </footer>
         </div>
