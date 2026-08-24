@@ -2,89 +2,104 @@
 // 파일명: web/app.js
 // 설명: 국내 체험단 통합 모음 사이트(Experience Hub)의 React 프론트엔드 핵심 로직
 // 주요 기능: 실시간 필터링/검색, D-Day 계산, 모집인원/신청자수/경쟁률 시각화,
-//            당첨확률순 정렬, 북마크(찜), Supabase 연동 및 Fallback
+//            상세 신청 페이지(직접 링크) 직결, 당첨확률순 정렬, 북마크(찜)
 // ==============================================================================
 
 const { useState, useEffect, useMemo } = React;
 
-// 1. Supabase 접속 설정
+// 1. Supabase 접속 설정 (본인의 Supabase 키가 있다면 여기에 입력하세요)
 const SUPABASE_URL = "";  // 예: "https://xxxx.supabase.co"
 const SUPABASE_ANON_KEY = ""; // 예: "eyJhbGciOi..."
 
-// 2. 기본 샘플 데이터 (Supabase 미연동 시 자동 로드)
+// 2. 기본 고품질 샘플 데이터 (실제 신청 상세 페이지 직결 URL 적용)
 const MOCK_CAMPAIGNS = [
     {
         id: "mock-1",
         platform: "디너의여왕",
-        title: "[강남/신사] 정통 일식 오마카세 디너 2인 코스 체험권",
-        original_url: "https://dinnerqueen.net/taste",
-        image_url: "https://images.unsplash.com/photo-1579871494447-9811cf80d66c?w=600&auto=format&fit=crop&q=80",
+        title: "[강원 강릉][릴스] 자근숩 - 감성 카페 & 디저트",
+        original_url: "https://dinnerqueen.net/taste/1519349", // 실제 디너의여왕 상세 신청 페이지
+        image_url: "https://dq-files.gcdn.ntruss.com/contract/019b4030-26bc-74c9-b023-ee341af9ae81.jpeg",
         category: "맛집",
-        media_type: "블로그",
-        location: "서울 강남구",
-        reward: "오마카세 디너 2인 (18만원 상당)",
-        capacity: 5,
-        applied_count: 38,
-        end_date: new Date(Date.now() + 1000 * 60 * 60 * 24 * 2).toISOString(),
+        media_type: "릴스/숏츠",
+        location: "강원 강릉",
+        reward: "시그니처 음료 2잔 + 디저트 1종 무료 제공",
+        capacity: 2,
+        applied_count: 41,
+        end_date: new Date(Date.now() + 1000 * 60 * 60 * 24 * 7).toISOString(),
         is_closed: false
     },
     {
         id: "mock-2",
         platform: "클라우드리뷰",
-        title: "[홍대/연남] 감성 브런치 플레이트 & 수제 에이드 2잔",
-        original_url: "https://cloudreview.co.kr",
-        image_url: "https://images.unsplash.com/photo-1533089860892-a7c6f0a88666?w=600&auto=format&fit=crop&q=80",
-        category: "맛집",
-        media_type: "인스타그램",
-        location: "서울 마포구",
-        reward: "브런치 세트 (5만원 상당 식사권)",
-        capacity: 10,
-        applied_count: 18,
-        end_date: new Date(Date.now() + 1000 * 60 * 60 * 24 * 4).toISOString(),
+        title: "[생활] 프리미엄 티타늄 금수저 2벌 세트",
+        original_url: "https://cloudreview.co.kr/campaign/detail/239119", // 실제 클라우드리뷰 상세 신청 페이지
+        image_url: "https://api.cloudreview.co.kr/campaign/66655/main_image/c6275b695b15ecf4ebadd62d6e4f0385.jpg",
+        category: "생활/식품",
+        media_type: "블로그",
+        location: "전국(배송형)",
+        reward: "티타늄 금수저 2벌 본품 무료 배송",
+        capacity: 7,
+        applied_count: 779,
+        end_date: new Date(Date.now() + 1000 * 60 * 60 * 24 * 2).toISOString(),
         is_closed: false
     },
     {
         id: "mock-3",
         platform: "디너의여왕",
-        title: "[제주/애월] 오션뷰 감성 독채 풀빌라 1박 무료 숙박권",
-        original_url: "https://dinnerqueen.net/taste",
-        image_url: "https://images.unsplash.com/photo-1582719478250-c89cae4dc85b?w=600&auto=format&fit=crop&q=80",
-        category: "숙박/여행",
-        media_type: "블로그",
-        location: "제주 제주시",
-        reward: "주중 독채 1박 (최대 4인 바베큐 무료)",
+        title: "[경남 김해][릴스] 카페올라 - 뷰 맛집 브런치 & 베이커리",
+        original_url: "https://dinnerqueen.net/taste/1518936", // 실제 상세 신청 페이지
+        image_url: "https://dq-files.gcdn.ntruss.com/deal/01a02297-ae31-72bb-a598-bcb6519733d6.webp",
+        category: "맛집",
+        media_type: "릴스/숏츠",
+        location: "경남 김해",
+        reward: "3만원 상당 브런치 및 음료 이용권",
         capacity: 3,
-        applied_count: 145,
-        end_date: new Date(Date.now() + 1000 * 60 * 60 * 24 * 1).toISOString(),
+        applied_count: 5,
+        end_date: new Date(Date.now() + 1000 * 60 * 60 * 24 * 7).toISOString(),
         is_closed: false
     },
     {
         id: "mock-4",
         platform: "클라우드리뷰",
-        title: "[성수/뚝섬] 숙성 한우 1++ 구이 & 된장찌개 2인 세트",
-        original_url: "https://cloudreview.co.kr",
+        title: "[식품] 핑크솔트 선물 4호 1SET 무료 증정",
+        original_url: "https://cloudreview.co.kr/campaign/detail/238697", // 실제 상세 신청 페이지
         image_url: "https://images.unsplash.com/photo-1544025162-d76694265947?w=600&auto=format&fit=crop&q=80",
-        category: "맛집",
+        category: "생활/식품",
         media_type: "블로그",
-        location: "서울 성동구",
-        reward: "한우 모듬 300g + 식사류 제공",
-        capacity: 8,
-        applied_count: 67,
+        location: "전국(배송형)",
+        reward: "히말라야 핑크솔트 선물세트 1박스",
+        capacity: 10,
+        applied_count: 320,
         end_date: new Date(Date.now() + 1000 * 60 * 60 * 24 * 3).toISOString(),
         is_closed: false
     },
     {
         id: "mock-5",
         platform: "디너의여왕",
-        title: "[스킨케어] 고농축 히알루론산 수분 앰플 본품 50ml",
-        original_url: "https://dinnerqueen.net/taste",
-        image_url: "https://images.unsplash.com/photo-1620916566398-39f1143ab7be?w=600&auto=format&fit=crop&q=80",
-        category: "뷰티/미용",
+        title: "[대구 북구][릴스] 스시유카리 - 정통 일식 초밥 코스",
+        original_url: "https://dinnerqueen.net/taste/1519120", // 실제 상세 신청 페이지
+        image_url: "https://dq-files.gcdn.ntruss.com/deal/019bc0c1-255c-70d1-a46c-9ad8bb8d0007.webp",
+        category: "맛집",
         media_type: "릴스/숏츠",
-        location: "전국(배송형)",
-        reward: "앰플 본품 1개 (소비자가 42,000원)",
-        capacity: 50,
-        applied_count: 320,
+        location: "대구 북구",
+        reward: "특선 모듬초밥 2인 세트 제공",
+        capacity: 1,
+        applied_count: 6,
+        end_date: new Date(Date.now() + 1000 * 60 * 60 * 24 * 7).toISOString(),
+        is_closed: false
+    },
+    {
+        id: "mock-6",
+        platform: "디너의여왕",
+        title: "[부산 기장][릴스] 아빠대게 - 신선한 대게 & 볶음밥",
+        original_url: "https://dinnerqueen.net/taste/1519389", // 실제 상세 신청 페이지
+        image_url: "https://dq-files.gcdn.ntruss.com/contract/019a4732-cf6d-7456-b4de-433a293c90f3.jpeg",
+        category: "맛집",
+        media_type: "릴스/숏츠",
+        location: "부산 기장",
+        reward: "대게 코스 요리 2인 식사권",
+        capacity: 2,
+        applied_count: 12,
         end_date: new Date(Date.now() + 1000 * 60 * 60 * 24 * 6).toISOString(),
         is_closed: false
     }
@@ -101,7 +116,7 @@ const CATEGORIES = [
 ];
 
 const PLATFORMS = ["전체", "디너의여왕", "클라우드리뷰", "리뷰노트", "레뷰", "강남맛집", "미블"];
-const LOCATIONS = ["전체 지역", "서울", "경기", "인천", "부산", "제주", "전국(배송형)"];
+const LOCATIONS = ["전체 지역", "서울", "경기", "인천", "부산", "제주", "강원", "경남", "대구", "전국(배송형)"];
 
 function getPlatformBadge(platform) {
     switch (platform) {
@@ -327,7 +342,7 @@ function App() {
                         국내 모든 체험단을 <span className="text-rose-400">한곳에서</span> 스마트하게!
                     </h1>
                     <p className="text-slate-300 text-sm sm:text-base max-w-2xl mx-auto">
-                        디너의여왕, 클라우드리뷰 등 다양한 플랫폼의 모집인원, 신청자수, 실시간 경쟁률을 한눈에 비교하세요!
+                        디너의여왕, 클라우드리뷰 등 원하는 공고를 누르면 해당 플랫폼의 <strong>신청 상세 페이지로 즉시 이동</strong>합니다!
                     </p>
 
                     <div className="relative max-w-2xl mx-auto pt-2">
@@ -458,7 +473,7 @@ function App() {
                     )}
                 </div>
 
-                {/* 카드 그리드 리스트 */}
+                {/* 카드 그리드 리스트 (카드 전체 클릭 시 실제 신청 페이지로 새 탭 이동) */}
                 {loading ? (
                     <div className="py-24 text-center">
                         <i className="fa-solid fa-spinner fa-spin text-4xl text-indigo-600"></i>
@@ -481,9 +496,13 @@ function App() {
                             const compBadge = getCompetitionRateBadge(c.capacity, c.applied_count);
 
                             return (
-                                <div
+                                <a
                                     key={c.id}
-                                    className="campaign-card bg-white rounded-2xl border border-slate-200 overflow-hidden flex flex-col justify-between group"
+                                    href={c.original_url}
+                                    target="_blank"
+                                    rel="noopener noreferrer"
+                                    className="campaign-card bg-white rounded-2xl border border-slate-200 overflow-hidden flex flex-col justify-between group cursor-pointer block text-inherit no-underline"
+                                    title={`${c.title} - 신청 페이지로 이동`}
                                 >
                                     {/* 썸네일 영역 */}
                                     <div className="relative card-image-wrap aspect-[4/3] bg-slate-100 overflow-hidden">
@@ -510,7 +529,7 @@ function App() {
                                         {/* 찜하기 버튼 */}
                                         <button
                                             onClick={(e) => toggleBookmark(c.id, e)}
-                                            className="absolute top-3 right-3 w-8 h-8 rounded-full bg-white/90 backdrop-blur-md text-rose-500 flex items-center justify-center shadow-md hover:scale-110 transition-transform"
+                                            className="absolute top-3 right-3 w-8 h-8 rounded-full bg-white/90 backdrop-blur-md text-rose-500 flex items-center justify-center shadow-md hover:scale-110 transition-transform z-10"
                                             title="관심 체험단 찜하기"
                                         >
                                             <i className={`${isBookmarked ? "fa-solid text-rose-500" : "fa-regular text-slate-400"} text-sm`}></i>
@@ -566,18 +585,14 @@ function App() {
                                                 <span>모집 <strong className="text-indigo-600 font-bold">{c.capacity || 5}</strong>명</span>
                                             </div>
 
-                                            <a
-                                                href={c.original_url}
-                                                target="_blank"
-                                                rel="noopener noreferrer"
-                                                className="w-full py-2.5 rounded-xl bg-slate-900 hover:bg-indigo-600 text-white font-semibold text-xs text-center flex items-center justify-center space-x-1.5 transition-colors shadow-sm"
-                                            >
-                                                <span>신청하러 가기</span>
+                                            {/* 신청하러 가기 버튼 */}
+                                            <div className="w-full py-2.5 rounded-xl bg-slate-900 group-hover:bg-indigo-600 text-white font-semibold text-xs text-center flex items-center justify-center space-x-1.5 transition-colors shadow-sm">
+                                                <span>신청 페이지로 바로가기</span>
                                                 <i className="fa-solid fa-arrow-up-right-from-square text-[10px]"></i>
-                                            </a>
+                                            </div>
                                         </div>
                                     </div>
-                                </div>
+                                </a>
                             );
                         })}
                     </div>
@@ -587,7 +602,7 @@ function App() {
             <footer className="bg-slate-900 text-slate-400 text-xs py-8 border-t border-slate-800 mt-12">
                 <div className="max-w-7xl mx-auto px-4 text-center space-y-2">
                     <p className="font-semibold text-slate-300">Experience Hub · 국내 체험단 통합 검색 플랫폼</p>
-                    <p>디너의여왕, 클라우드리뷰 등 다양한 플랫폼의 모집 인원과 신청자 수, 경쟁률 정보를 제공합니다.</p>
+                    <p>공고를 클릭하시면 해당 업체의 공식 신청 상세 페이지로 새 창 이동합니다.</p>
                 </div>
             </footer>
         </div>
