@@ -8,8 +8,8 @@ const { useState, useEffect, useMemo } = React;
 
 // 1. Supabase 접속 설정 (본인의 Supabase 키가 있다면 여기에 입력하세요)
 // 입력하지 않아도 아래 MOCK_CAMPAIGNS 데이터로 즉시 완벽히 동작합니다!
-const SUPABASE_URL = "";  // 예: "https://xxxx.supabase.co"
-const SUPABASE_ANON_KEY = ""; // 예: "eyJhbGciOi..."
+const SUPABASE_URL = "https://bmosdfsnecapqkrnibyn.supabase.co";  // 예: "https://xxxx.supabase.co"
+const SUPABASE_ANON_KEY = "sb_publishable_HVzgvqHrVIJjUFDByiZPUQ_P6hExwWo"; // 예: "eyJhbGciOi..."
 
 // 2. 기본 고품질 샘플 데이터 (Supabase 미연동 시 자동 로드)
 const MOCK_CAMPAIGNS = [
