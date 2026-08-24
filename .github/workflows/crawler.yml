@@ -1,34 +1,46 @@
 name: Experience Hub Crawler
 
+# ==============================================================================
+# 24시간 완전 자동 크롤링 스케줄러 (GitHub Actions)
+# 사용자가 신경 쓰지 않아도 하루 4회(매 6시간마다) 자동으로 실행됩니다.
+# ==============================================================================
+
 on:
   schedule:
-    - cron: '0 21,9 * * *'
+    # 한국 시간(KST) 기준:
+    # • 00:00 (자정)
+    # • 06:00 (오전 6시)
+    # • 12:00 (정오)
+    # • 18:00 (오후 6시)
+    - cron: "0 15,21,3,9 * * *"
+
+  # 필요할 때 언제든 즉시 수동 실행도 가능
   workflow_dispatch:
 
 jobs:
   crawl-and-sync:
-    name: Crawl and Sync to Supabase
+    name: "24시간 자동 수집 및 Supabase DB 동기화"
     runs-on: ubuntu-latest
 
     steps:
-      - name: Checkout repository
+      - name: "Checkout repository"
         uses: actions/checkout@v4
 
-      - name: Set up Python
+      - name: "Set up Python 3.11"
         uses: actions/setup-python@v5
         with:
-          python-version: '3.11'
-          cache: 'pip'
+          python-version: "3.11"
+          cache: "pip"
 
-      - name: Install dependencies
+      - name: "Install Dependencies"
         run: |
           python -m pip install --upgrade pip
           pip install -r requirements.txt
 
-      - name: Run Crawler
+      - name: "Run Auto Crawler"
         env:
           SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
           SUPABASE_KEY: ${{ secrets.SUPABASE_KEY }}
-          PYTHONIOENCODING: 'utf-8'
+          PYTHONIOENCODING: "utf-8"
         run: |
           python main.py
