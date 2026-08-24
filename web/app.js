@@ -30,9 +30,9 @@ const MOCK_CAMPAIGNS = [
     },
     {
         id: "mock-2",
-        platform: "디너의여왕",
+        platform: "클라우드리뷰",
         title: "[홍대/연남] 감성 브런치 플레이트 & 수제 에이드 2잔",
-        original_url: "https://dinnerqueen.net/taste",
+        original_url: "https://cloudreview.co.kr",
         image_url: "https://images.unsplash.com/photo-1533089860892-a7c6f0a88666?w=600&auto=format&fit=crop&q=80",
         category: "맛집",
         media_type: "인스타그램",
@@ -60,9 +60,9 @@ const MOCK_CAMPAIGNS = [
     },
     {
         id: "mock-4",
-        platform: "디너의여왕",
+        platform: "클라우드리뷰",
         title: "[성수/뚝섬] 숙성 한우 1++ 구이 & 된장찌개 2인 세트",
-        original_url: "https://dinnerqueen.net/taste",
+        original_url: "https://cloudreview.co.kr",
         image_url: "https://images.unsplash.com/photo-1544025162-d76694265947?w=600&auto=format&fit=crop&q=80",
         category: "맛집",
         media_type: "블로그",
@@ -100,13 +100,15 @@ const CATEGORIES = [
     { id: "디지털/가전", name: "디지털/가전", icon: "fa-laptop" },
 ];
 
-const PLATFORMS = ["전체", "디너의여왕", "리뷰노트", "레뷰", "강남맛집", "미블"];
+const PLATFORMS = ["전체", "디너의여왕", "클라우드리뷰", "리뷰노트", "레뷰", "강남맛집", "미블"];
 const LOCATIONS = ["전체 지역", "서울", "경기", "인천", "부산", "제주", "전국(배송형)"];
 
 function getPlatformBadge(platform) {
     switch (platform) {
         case "디너의여왕":
             return { bg: "bg-purple-50 text-purple-600 border-purple-200", icon: "fa-crown" };
+        case "클라우드리뷰":
+            return { bg: "bg-sky-50 text-sky-600 border-sky-200", icon: "fa-cloud" };
         case "리뷰노트":
             return { bg: "bg-amber-50 text-amber-700 border-amber-200", icon: "fa-book-open" };
         case "레뷰":
@@ -144,7 +146,6 @@ function getDDay(endDateString) {
     return { text: `D-${diffDays}`, isUrgent: false };
 }
 
-// 경쟁률 배지 정보 계산 헬퍼 함수
 function getCompetitionRateBadge(capacity, appliedCount) {
     const cap = capacity > 0 ? capacity : 1;
     const applied = appliedCount || 0;
@@ -262,11 +263,9 @@ function App() {
             const compRateB = (b.applied_count || 0) / capB;
 
             if (sortBy === "comp_asc") {
-                // 당첨확률 높은 순 (경쟁률 낮은 순)
                 return compRateA - compRateB;
             }
             if (sortBy === "comp_desc") {
-                // 인기폭발 순 (경쟁률 높은 순)
                 return compRateB - compRateA;
             }
             if (sortBy === "end_date_asc") {
@@ -328,7 +327,7 @@ function App() {
                         국내 모든 체험단을 <span className="text-rose-400">한곳에서</span> 스마트하게!
                     </h1>
                     <p className="text-slate-300 text-sm sm:text-base max-w-2xl mx-auto">
-                        모집인원, 신청인원, 실시간 경쟁률을 한눈에 비교하고 당첨 확률 높은 공고를 찾아보세요!
+                        디너의여왕, 클라우드리뷰 등 다양한 플랫폼의 모집인원, 신청자수, 실시간 경쟁률을 한눈에 비교하세요!
                     </p>
 
                     <div className="relative max-w-2xl mx-auto pt-2">
@@ -336,7 +335,7 @@ function App() {
                             <i className="fa-solid fa-magnifying-glass absolute left-4 text-slate-400"></i>
                             <input
                                 type="text"
-                                placeholder="지역(강릉, 김해, 강남) 또는 키워드(스시, 삼겹살, 숙박)를 검색해보세요"
+                                placeholder="지역(강릉, 김해, 강남, 홍대) 또는 키워드(스시, 삼겹살, 숙박)를 검색해보세요"
                                 value={searchTerm}
                                 onChange={(e) => setSearchTerm(e.target.value)}
                                 className="w-full pl-11 pr-10 py-3.5 rounded-2xl bg-white/95 text-slate-800 placeholder-slate-400 text-sm sm:text-base shadow-xl focus:outline-none focus:ring-4 focus:ring-indigo-400/50"
@@ -418,7 +417,7 @@ function App() {
                             </select>
                         </div>
 
-                        {/* 정렬 드롭다운 (경쟁률 정렬 포함) */}
+                        {/* 정렬 드롭다운 */}
                         <div className="flex items-center space-x-2 text-xs">
                             <span className="text-slate-400">정렬:</span>
                             <select
@@ -556,20 +555,17 @@ function App() {
 
                                         {/* 실시간 경쟁률 및 모집/신청 현황 */}
                                         <div className="space-y-2 pt-2 border-t border-slate-100">
-                                            {/* 경쟁률 배지 */}
                                             <div className="flex items-center justify-between">
                                                 <span className={`px-2 py-0.5 rounded-md border text-[11px] ${compBadge.badgeClass}`}>
                                                     {compBadge.tag} ({compBadge.text})
                                                 </span>
                                             </div>
 
-                                            {/* 모집 / 신청 현황 수치 */}
                                             <div className="flex items-center justify-between text-xs text-slate-500">
                                                 <span>신청 <strong className="text-slate-900 font-bold">{c.applied_count || 0}</strong>명</span>
                                                 <span>모집 <strong className="text-indigo-600 font-bold">{c.capacity || 5}</strong>명</span>
                                             </div>
 
-                                            {/* 신청하러 가기 버튼 */}
                                             <a
                                                 href={c.original_url}
                                                 target="_blank"
@@ -591,7 +587,7 @@ function App() {
             <footer className="bg-slate-900 text-slate-400 text-xs py-8 border-t border-slate-800 mt-12">
                 <div className="max-w-7xl mx-auto px-4 text-center space-y-2">
                     <p className="font-semibold text-slate-300">Experience Hub · 국내 체험단 통합 검색 플랫폼</p>
-                    <p>실시간 모집 인원과 신청자 수, 경쟁률 정보를 제공하여 당첨 확률 높은 공고를 스마트하게 찾을 수 있습니다.</p>
+                    <p>디너의여왕, 클라우드리뷰 등 다양한 플랫폼의 모집 인원과 신청자 수, 경쟁률 정보를 제공합니다.</p>
                 </div>
             </footer>
         </div>

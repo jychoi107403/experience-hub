@@ -20,9 +20,10 @@ if sys.platform == "win32":
 from crawlers import (
     BaseCrawler,
     DinnerQueenCrawler,
+    CloudReviewCrawler,
     ReviewNoteCrawler,
     RevuCrawler,
-    GangnamCrawler
+    GangnamCrawler,
 )
 
 # 로거 설정
@@ -42,7 +43,8 @@ def main():
 
     # 1. 실행할 크롤러 목록 등록
     crawlers = [
-        DinnerQueenCrawler(delay_seconds=1.0),   # 디너의여왕 (카테고리별 대량 수집)
+        DinnerQueenCrawler(delay_seconds=1.0),   # 디너의여왕 (120건 실제 매장 수집)
+        CloudReviewCrawler(delay_seconds=1.0),   # 클라우드리뷰 (블로그/인스타/릴스 수집)
         ReviewNoteCrawler(delay_seconds=1.2),    # 리뷰노트
         RevuCrawler(delay_seconds=1.5),          # 레뷰
         GangnamCrawler(delay_seconds=1.5),       # 강남맛집
